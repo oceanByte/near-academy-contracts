@@ -2,7 +2,7 @@ import { ContractPromiseBatch, PersistentSet, context, base58, u128, env } from 
 import { AccountId } from '../../utils';
 import { Meme } from './models';
 
-const CODE = includeBytes('../../../build/debug/meme.wasm')
+const CODE = includeBytes('../../../build/release/meme.wasm')
 
 /// This gas spent on the call & account creation, the rest goes to the `new` call.
 const ONE_TERAGAS: u64 = 1000000000000

@@ -5,7 +5,7 @@ pub use meme::*;
 #[cfg(test)]
 mod test {
     use near_sdk::{json_types::Base58PublicKey, serde_json::json}; //, U128};
-                                                                   // use near_sdk_sim::near_crypto::{InMemorySigner, KeyType};
+                                                                   use near_sdk_sim::near_crypto::{InMemorySigner, KeyType};
                                                                    // use std::convert::TryInto;
 
     use super::*;
@@ -13,7 +13,7 @@ mod test {
 
     // Load in contract bytes
     near_sdk_sim::lazy_static! {
-      static ref MEME_WASM_BYTES: &'static [u8] = include_bytes!("../../build/release/meme.wasm").as_ref();
+      static ref MEME_WASM_BYTES: &'static [u8] = include_bytes!("../../build/debug/meme.wasm").as_ref();
     }
 
     fn init() -> (UserAccount, ContractAccount<MemeContract>) {
