@@ -22,18 +22,18 @@ const MEME_KEY = "initialized"
  *
  * Sets up and stores new Project.
  */
-export function initialize(meme: Meme): void {
+export function initialize(title: string, artist: string, category: Category): void {
   assert(!is_initialized(), 'Contract is already initialized.');
   assert(
     u128.ge(context.attachedDeposit, MIN_ACCOUNT_BALANCE),
     'MIN_ACCOUNT_BALANCE must be attached to initialize (3 NEAR)'
   );
 
-  assert(meme.title.length > 0, "Meme title may not be blank");
+  assert(title.length > 0, "Meme title may not be blank");
 
-  logging.log("initializing meme with title: " + meme.title);
+  logging.log("initializing meme with title: " + title);
 
-  const new_meme = new Meme(meme.title, meme.artist, meme.category)
+  const new_meme = new Meme(title, artist, category)
   storage.set("meme", new_meme);
 }
 
@@ -41,7 +41,7 @@ export function get_meme(): Meme {
   return storage.getSome<Meme>("meme")
 }
 
-export function add_comment(text: String): void {
+export function add_comment(text: string): void {
   const meme = storage.getSome<Meme>("meme")
   meme.comments.push(new Comment(text, context.sender))
 }
@@ -66,21 +66,24 @@ export function group_vote(value: i8, isGroup: bool = true): void {
 
 export function get_recent_votes(): Array<Vote> {
   // fetch votes from meme from storage
-  const votes = storage.getSome<Meme>("meme").votes
+  const meme = storage.getSome<Meme>("meme")
   // extract 10 votes
-  const MAX_RESULTS = 10
-  const resultSize = min(votes.length, MAX_RESULTS)
-  let results = new Array<Vote>(resultSize)
-  for (let i = 0; i < resultSize; i++) {
-    results.push(votes[i])
-  }
-  return results
+  return meme.last_votes(10)
 }
 
 export function get_vote_score(): i32 {
   return storage.getSome<Meme>("meme").vote_score
 }
 
+export function donate(): void {
+  assert(context.sender == context.predecessor, "users must donate directly")
+  assert(context.attachedDeposit > u128.Zero, "donor must attach some money")
+
+  // fetch meme from storage
+  const meme = storage.getSome<Meme>("meme")
+  // capture the donation
+  meme.donations.push(new Donation())
+}
 
 /**
  * == PRIVATE FUNCTIONS ========================================================

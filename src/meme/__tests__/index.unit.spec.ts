@@ -30,13 +30,9 @@ let meme: models.Meme
 
 describe('meme', () => {
 
-  beforeAll(() => {
-    meme = new models.Meme(title, artist, category)
-  })
-
   it('saves the meme', () => {
     attachMinBalance()
-    contract.initialize(meme)
+    contract.initialize(title, artist, category)
     // log(VM.logs())
 
     const m = contract.get_meme()
@@ -49,7 +45,7 @@ describe('meme', () => {
 
   it('saves a comment to the meme', () => {
     attachMinBalance()
-    contract.initialize(new models.Meme("hello", "alice", models.Category.A))
+    contract.initialize(title, artist, category)
 
     contract.add_comment("yo")
     expect(contract.get_meme().comments.length == 1)
@@ -57,16 +53,14 @@ describe('meme', () => {
 })
 
 describe('voting', () => {
-  beforeAll(() => {
-    meme = new models.Meme(title, artist, category)
-  })
-
-  it('saves a vote and calculates vote_score', () => {
+  beforeEach(() => {
     setSigner()
     setPredecessor()
     attachMinBalance()
-    contract.initialize(meme)
+    contract.initialize(title, artist, category)
+  })
 
+  it('saves a vote and calculates vote_score', () => {
     contract.vote(-1)
     const m = contract.get_meme()
     expect(m.votes.length == 1)
@@ -74,11 +68,6 @@ describe('voting', () => {
   })
 
   it('saves group votes and calculates vote_score', () => {
-    setSigner()
-    setPredecessor()
-    attachMinBalance()
-    contract.initialize(meme)
-
     contract.group_vote(3)
     const m = contract.get_meme()
     expect(m.votes.length == 1)
@@ -86,22 +75,20 @@ describe('voting', () => {
   })
 
   it('returns 10 votes', () => {
-    attachMinBalance()
-    contract.initialize(meme);
+    const accounts = 'abcdefghijklmnopqrstuvwxyz'
+    const accountsList = accounts.split("")
 
-    const accounts = 'abcdefghijk'
-    const accountsList = accounts.split()
     for (let i = 0; i < accountsList.length; i++) {
-      log(accountsList[i])
       setSigner(accountsList[i])
       setPredecessor(accountsList[i])
       contract.vote(Math.random() > 0.5 ? 1 : - 1)
     }
+
     const m = contract.get_meme()
-    expect(accountsList.length != 10) // should be different
-    expect(m.votes.length == accountsList.length)
-    expect(contract.get_recent_votes().length == 10)
-    log(contract.get_recent_votes())
+
+    expect(accountsList.length).not.toBe(10)
+    expect(m.votes.length).toBe(accountsList.length)
+    expect(contract.get_recent_votes().length).toBe(10, "recent votes should be 10")
   })
 
 })
