@@ -3,66 +3,13 @@ import {
   u128,
   context,
   storage,
-  PersistentVector,
-  logging
+  logging,
 } from 'near-sdk-as';
 
-import { MIN_ACCOUNT_BALANCE, AccountId, Money, Timestamp } from '../../utils';
+import { MIN_ACCOUNT_BALANCE } from '../../utils';
+import { Category, Comment, Vote, Donation, Meme } from './models';
 
 const MEME_KEY = "initialized"
-
-export enum Category {
-  A = 0 as i8,
-  B = 1 as i8,
-  C = 2 as i8,
-  D = 4 as i8,
-}
-
-@nearBindgen
-//@ts-ignore
-export class Comment {
-  constructor(
-    public text: String,
-    public author: AccountId,
-    public createdAt: Timestamp = context.blockTimestamp,
-  ) { }
-}
-
-@nearBindgen
-//@ts-ignore
-class Vote {
-  constructor(
-    public vote: i8,
-    public voter: AccountId,
-    public createdAt: Timestamp = context.blockTimestamp,
-  ) { }
-}
-
-@nearBindgen
-//@ts-ignore
-class Donation {
-  constructor(
-    public amount: Money,
-    public donor: AccountId,
-    public createdAt: Timestamp = context.blockTimestamp,
-  ) { }
-}
-
-@nearBindgen
-//@ts-ignore
-export class Meme {
-  constructor(
-    public title: String,
-    public artist: String,
-    public category: Category,
-    //@ts-ignore
-    public createdAt: Timestamp = context.blockTimestamp,
-    public vote_score: i32 = 0,
-    public comments: PersistentVector<Comment> = new PersistentVector<Comment>("c"),
-    public votes: PersistentVector<Vote> = new PersistentVector<Vote>("v"),
-    public donations: PersistentVector<Donation> = new PersistentVector<Donation>("d")
-  ) { }
-}
 
 /**
  * == PUBLIC METHODS ===========================================================
@@ -86,7 +33,8 @@ export function initialize(meme: Meme): void {
 
   logging.log("initializing meme with title: " + meme.title);
 
-  storage.set("meme", meme);
+  const new_meme = new Meme(meme.title, meme.artist, meme.category)
+  storage.set("meme", new_meme);
 }
 
 export function get_meme(): Meme {
@@ -98,6 +46,40 @@ export function add_comment(text: String): void {
   meme.comments.push(new Comment(text, context.sender))
 }
 
+export function vote(value: i8): void {
+  assert(context.sender == context.predecessor, "users must vote directly")
+  assert(value == 1 || value == -1, "invalid vote, must be -1 or 1")
+
+  // register the vote
+  group_vote(value, false)
+}
+
+export function group_vote(value: i8, isGroup: bool = true): void {
+  // fetch meme from storage
+  const meme = storage.getSome<Meme>("meme")
+  // register the vote
+  const voter = isGroup ? "group-" + context.predecessor : context.predecessor
+  meme.votes.push(new Vote(value, voter))
+  // calculate the new score for the meme
+  meme.vote_score = meme.vote_score + value
+}
+
+export function get_recent_votes(): Array<Vote> {
+  // fetch votes from meme from storage
+  const votes = storage.getSome<Meme>("meme").votes
+  // extract 10 votes
+  const MAX_RESULTS = 10
+  const resultSize = min(votes.length, MAX_RESULTS)
+  let results = new Array<Vote>(resultSize)
+  for (let i = 0; i < resultSize; i++) {
+    results.push(votes[i])
+  }
+  return results
+}
+
+export function get_vote_score(): i32 {
+  return storage.getSome<Meme>("meme").vote_score
+}
 
 
 /**
