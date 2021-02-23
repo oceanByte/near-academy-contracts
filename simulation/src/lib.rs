@@ -13,7 +13,7 @@ mod test {
 
     // Load in contract bytes
     near_sdk_sim::lazy_static! {
-      static ref MEME_WASM_BYTES: &'static [u8] = include_bytes!("../../build/release/meme.wasm").as_ref();
+      static ref MEME_WASM_BYTES: &'static [u8] = include_bytes!("../../build/debug/meme.wasm").as_ref();
     }
 
     fn init() -> (UserAccount, ContractAccount<MemeContract>) {

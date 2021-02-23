@@ -33,17 +33,15 @@ export function initialize(title: string, artist: string, category: Category): v
 
   logging.log("initializing meme with title: " + title);
 
-  const new_meme = new Meme(title, artist, category)
-  storage.set("meme", new_meme);
+  Meme.create(title, artist, category)
 }
 
 export function get_meme(): Meme {
-  return storage.getSome<Meme>("meme")
+  return Meme.get()
 }
 
 export function add_comment(text: string): void {
-  const meme = storage.getSome<Meme>("meme")
-  meme.comments.push(new Comment(text, context.sender))
+  Meme.add_comment(new Comment(text))
 }
 
 export function vote(value: i8): void {
@@ -55,34 +53,32 @@ export function vote(value: i8): void {
 }
 
 export function group_vote(value: i8, isGroup: bool = true): void {
-  // fetch meme from storage
-  const meme = storage.getSome<Meme>("meme")
   // register the vote
   const voter = isGroup ? "group-" + context.predecessor : context.predecessor
-  meme.votes.push(new Vote(value, voter))
-  // calculate the new score for the meme
-  meme.vote_score = meme.vote_score + value
+  // Meme.add_vote(new Vote(value, voter))
+  Meme.add_vote(voter, value)
 }
 
 export function get_recent_votes(): Array<Vote> {
   // fetch votes from meme from storage
   const meme = storage.getSome<Meme>("meme")
   // extract 10 votes
-  return meme.last_votes(10)
+  return Meme.recent_votes(10)
 }
 
 export function get_vote_score(): i32 {
-  return storage.getSome<Meme>("meme").vote_score
+  return Meme.get().vote_score
 }
 
 export function donate(): void {
   assert(context.sender == context.predecessor, "users must donate directly")
   assert(context.attachedDeposit > u128.Zero, "donor must attach some money")
 
-  // fetch meme from storage
-  const meme = storage.getSome<Meme>("meme")
-  // capture the donation
-  meme.donations.push(new Donation())
+  Meme.add_donation()
+}
+
+export function get_donations(): u128 {
+  return Meme.get().total_donations
 }
 
 /**

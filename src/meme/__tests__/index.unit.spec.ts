@@ -36,11 +36,11 @@ describe('meme', () => {
     // log(VM.logs())
 
     const m = contract.get_meme()
-    expect(m.title == title)
-    expect(m.artist == artist)
-    expect(m.category == category)
-    expect(m.donations.length == 0)
-    expect(m.votes.length == 0)
+    expect(m.title).toBe(title)
+    expect(m.artist).toBe(artist)
+    expect(m.category).toBe(category)
+    expect(models.Meme.get_donations_count()).toBe(0)
+    expect(models.Meme.get_votes_count()).toBe(0)
   })
 
   it('saves a comment to the meme', () => {
@@ -48,7 +48,7 @@ describe('meme', () => {
     contract.initialize(title, artist, category)
 
     contract.add_comment("yo")
-    expect(contract.get_meme().comments.length == 1)
+    expect(models.Meme.get_comments_count()).toBe(1)
   })
 })
 
@@ -63,15 +63,15 @@ describe('voting', () => {
   it('saves a vote and calculates vote_score', () => {
     contract.vote(-1)
     const m = contract.get_meme()
-    expect(m.votes.length == 1)
-    expect(m.vote_score == -1)
+    expect(models.Meme.get_votes_count()).toBe(1)
+    expect(m.vote_score).toBe(-1)
   })
 
   it('saves group votes and calculates vote_score', () => {
     contract.group_vote(3)
     const m = contract.get_meme()
-    expect(m.votes.length == 1)
-    expect(m.vote_score == 3)
+    expect(models.Meme.get_votes_count()).toBe(1)
+    expect(m.vote_score).toBe(3)
   })
 
   it('returns 10 votes', () => {
@@ -84,11 +84,29 @@ describe('voting', () => {
       contract.vote(Math.random() > 0.5 ? 1 : - 1)
     }
 
-    const m = contract.get_meme()
-
     expect(accountsList.length).not.toBe(10)
-    expect(m.votes.length).toBe(accountsList.length)
+    expect(models.Meme.get_votes_count()).toBe(accountsList.length)
     expect(contract.get_recent_votes().length).toBe(10, "recent votes should be 10")
   })
 
+})
+
+describe('donating', () => {
+  beforeEach(() => {
+    setSigner()
+    setPredecessor()
+    attachMinBalance()
+    contract.initialize(title, artist, category)
+  })
+
+  it('captures donation', () => {
+    const ATTACHED_DEPOSIT = u128.from(10)
+    VMContext.setAttached_deposit(ATTACHED_DEPOSIT)
+
+    contract.donate()
+
+    const m = contract.get_meme()
+    expect(models.Meme.recent_donations(10).length).toBe(1)
+    expect(m.total_donations).toBe(ATTACHED_DEPOSIT)
+  })
 })
