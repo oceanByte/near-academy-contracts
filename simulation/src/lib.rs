@@ -5,7 +5,7 @@ pub use meme::*;
 #[cfg(test)]
 mod test {
     use near_sdk::{json_types::Base58PublicKey, serde_json::json}; //, U128};
-                                                                   // use near_sdk_sim::near_crypto::{InMemorySigner, KeyType};
+                                                                   use near_sdk_sim::near_crypto::{InMemorySigner, KeyType};
                                                                    // use std::convert::TryInto;
 
     use super::*;
