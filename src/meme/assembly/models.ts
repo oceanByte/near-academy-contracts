@@ -47,19 +47,19 @@ export class Donation {
 
 @nearBindgen
 export class Meme {
+  creator: AccountId = context.sender;
   created_at: Timestamp = context.blockTimestamp;
   vote_score: i32 = 0;
   total_donations: u128 = u128.Zero;
 
   constructor(
     public title: String,
-    public artist: String,
+    public data: String, // TODO: data is MEME_ID --> https://9gag.com/gag/MEME_ID
     public category: Category,
-    public data: String,
   ) { }
 
-  static create(title: string, artist: string, category: Category, data: String): void {
-    this.set(new Meme(title, artist, category, data))
+  static create(title: string, data: string, category: Category): void {
+    this.set(new Meme(title, data, category))
   }
 
   /**

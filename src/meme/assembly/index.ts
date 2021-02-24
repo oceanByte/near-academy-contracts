@@ -22,7 +22,7 @@ const MEME_KEY = "initialized"
  *
  * Sets up and stores new Project.
  */
-export function init(title: string, artist: string, category: Category): void {
+export function init(title: string, data: string, category: Category): void {
   assert(!is_initialized(), 'Contract is already initialized.');
   assert(
     u128.ge(context.attachedDeposit, MIN_ACCOUNT_BALANCE),
@@ -31,7 +31,7 @@ export function init(title: string, artist: string, category: Category): void {
 
   assert(title.length > 0, "Meme title may not be blank");
 
-  Meme.create(title, artist, category)
+  Meme.create(title, data, category)
 }
 
 export function get_meme(): Meme {

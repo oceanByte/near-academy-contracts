@@ -24,7 +24,7 @@ const setSigner = (name: string = 'alice'): void => {
 const comments = new PersistentVector<models.Comment>("c");
 
 const title = "hello"
-const artist = "alice"
+const data = "ayMDG8Y" // https://9gag.com/gag/ayMDG8Y
 const category = models.Category.A
 let meme: models.Meme
 
@@ -32,12 +32,14 @@ describe('meme', () => {
 
   it('saves the meme', () => {
     attachMinBalance()
-    contract.initialize(title, artist, category)
+    setSigner()
+    contract.init(title, data, category)
     // log(VM.logs())
 
     const m = contract.get_meme()
     expect(m.title).toBe(title)
-    expect(m.artist).toBe(artist)
+    expect(m.data).toBe(data)
+    expect(m.creator).toBe('alice')
     expect(m.category).toBe(category)
     expect(models.Meme.get_donations_count()).toBe(0)
     expect(models.Meme.get_votes_count()).toBe(0)
@@ -45,7 +47,7 @@ describe('meme', () => {
 
   it('saves a comment to the meme', () => {
     attachMinBalance()
-    contract.initialize(title, artist, category)
+    contract.init(title, data, category)
 
     contract.add_comment("yo")
     expect(models.Meme.get_comments_count()).toBe(1)
@@ -57,7 +59,7 @@ describe('voting', () => {
     setSigner()
     setPredecessor()
     attachMinBalance()
-    contract.initialize(title, artist, category)
+    contract.init(title, data, category)
   })
 
   it('saves a vote and calculates vote_score', () => {
@@ -96,7 +98,7 @@ describe('donating', () => {
     setSigner()
     setPredecessor()
     attachMinBalance()
-    contract.initialize(title, artist, category)
+    contract.init(title, data, category)
   })
 
   it('captures donation', () => {
