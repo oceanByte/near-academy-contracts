@@ -10,11 +10,32 @@ const ONE_TERAGAS: u64 = 1000000000000
 
 const memes = new PersistentSet<AccountId>("m")
 
+
+export function init(): void {
+  // register museum admins (101Labs and NEAR accounts)
+}
+
 export function get_meme_list(): Array<AccountId> {
   return memes.values()
 }
 
-export function create(
+export function get_meme_count(): u32 {
+  return memes.values().length
+}
+
+export function remove_contributor(account: AccountId): void {
+  assert(context.predecessor == account, "you can only remove yourself")
+  assert(false, "must be museum admin to remove anyone but yourself")
+}
+
+
+export function add_contributor(account: AccountId): void {
+  assert(context.predecessor == account, "you can only add yourself")
+  assert(false, "must be museum admin to add anyone but yourself")
+}
+
+
+export function add_meme(
   name: AccountId,
   args: Meme,
   public_key: string = '', //base58 publickey string
@@ -39,4 +60,20 @@ export function create(
     u128.Zero,
     env.prepaid_gas()// - CREATE_CALL_GAS
   )
+}
+
+
+/**
+ * Governance methods reserved for 101Labs and NEAR admins
+ */
+export function add_admin(account: AccountId): void {
+  assert(false, "must be an admin of the museum")
+}
+
+export function remove_admin(account: AccountId): void {
+  assert(false, "must be an admin of the museum")
+}
+
+export function removeMeme(memeAccount: AccountId): void {
+  assert(false, "must be an admin of the museum")
 }

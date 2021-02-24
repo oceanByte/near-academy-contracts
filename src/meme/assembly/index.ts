@@ -6,7 +6,7 @@ import {
   logging,
 } from 'near-sdk-as';
 
-import { MIN_ACCOUNT_BALANCE } from '../../utils';
+import { AccountId, MIN_ACCOUNT_BALANCE } from '../../utils';
 import { Category, Comment, Vote, Donation, Meme } from './models';
 
 const MEME_KEY = "initialized"
@@ -22,7 +22,7 @@ const MEME_KEY = "initialized"
  *
  * Sets up and stores new Project.
  */
-export function initialize(title: string, artist: string, category: Category): void {
+export function init(title: string, artist: string, category: Category): void {
   assert(!is_initialized(), 'Contract is already initialized.');
   assert(
     u128.ge(context.attachedDeposit, MIN_ACCOUNT_BALANCE),
@@ -30,8 +30,6 @@ export function initialize(title: string, artist: string, category: Category): v
   );
 
   assert(title.length > 0, "Meme title may not be blank");
-
-  logging.log("initializing meme with title: " + title);
 
   Meme.create(title, artist, category)
 }
@@ -42,6 +40,10 @@ export function get_meme(): Meme {
 
 export function add_comment(text: string): void {
   Meme.add_comment(new Comment(text))
+}
+
+export function get_recent_comments(): Array<Comment> {
+  return Meme.recent_comments(10)
 }
 
 export function vote(value: i8): void {
@@ -60,9 +62,6 @@ export function group_vote(value: i8, isGroup: bool = true): void {
 }
 
 export function get_recent_votes(): Array<Vote> {
-  // fetch votes from meme from storage
-  const meme = storage.getSome<Meme>("meme")
-  // extract 10 votes
   return Meme.recent_votes(10)
 }
 
@@ -79,6 +78,12 @@ export function donate(): void {
 
 export function get_donations(): u128 {
   return Meme.get().total_donations
+}
+
+//todo
+export function release_donation(account: AccountId): bool {
+  assert(false, "only the meme creator can do this")
+  return true
 }
 
 /**

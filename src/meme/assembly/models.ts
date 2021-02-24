@@ -55,10 +55,11 @@ export class Meme {
     public title: String,
     public artist: String,
     public category: Category,
+    public data: String,
   ) { }
 
-  static create(title: string, artist: string, category: Category): void {
-    this.set(new Meme(title, artist, category))
+  static create(title: string, artist: string, category: Category, data: String): void {
+    this.set(new Meme(title, artist, category, data))
   }
 
   /**
