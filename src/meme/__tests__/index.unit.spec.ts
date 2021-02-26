@@ -1,7 +1,7 @@
 import { VMContext, u128, PersistentVector, Context, VM } from 'near-sdk-as';
 import * as contract from '../assembly';
 import * as models from '../assembly/models';
-import { toYocto, MIN_ACCOUNT_BALANCE } from '../../utils';
+import { toYocto, MIN_ACCOUNT_BALANCE, Category } from '../../utils';
 
 /**
  * == HELPER FUNCTIONS =========================================================
@@ -25,7 +25,7 @@ const comments = new PersistentVector<models.Comment>("c");
 
 const title = "hello"
 const data = "ayMDG8Y" // https://9gag.com/gag/ayMDG8Y
-const category = models.Category.A
+const category = Category.A
 let meme: models.Meme
 
 describe('meme', () => {
@@ -70,7 +70,7 @@ describe('voting', () => {
   })
 
   it('saves group votes and calculates vote_score', () => {
-    contract.group_vote(3)
+    contract.batch_vote(3)
     const m = contract.get_meme()
     expect(models.Meme.get_votes_count()).toBe(1)
     expect(m.vote_score).toBe(3)

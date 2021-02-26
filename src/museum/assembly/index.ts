@@ -1,49 +1,70 @@
-import { ContractPromiseBatch, PersistentSet, context, base58, u128, env } from 'near-sdk-as'
-import { AccountId } from '../../utils';
-import { Meme } from './models';
+import { ContractPromiseBatch, context, base58, u128, env, storage } from 'near-sdk-as'
+import { MIN_ACCOUNT_BALANCE, AccountId, Category, MUSEUM_KEY } from '../../utils';
+import { Museum } from './models';
 
+// import meme contract bytecode as StaticArray
 const CODE = includeBytes('../../../build/release/meme.wasm')
 
-/// This gas spent on the call & account creation, the rest goes to the `new` call.
-const ONE_TERAGAS: u64 = 1000000000000
-// const CREATE_CALL_GAS: u64 =  40 * ONE_TERAGAS
+export function init(name: string, owners: AccountId[]): void {
+  // contract may only be initialized once
+  assert(!is_initialized(), 'Contract is already initialized.');
 
-const memes = new PersistentSet<AccountId>("m")
+  // storing meme metadata requires some storage staking (balance locked to offset cost of data storage)
+  assert(
+    u128.ge(context.attachedDeposit, MIN_ACCOUNT_BALANCE),
+    'MIN_ACCOUNT_BALANCE must be attached to initialize (3 NEAR)'
+  );
 
+  // Must have least 1 owner account
+  assert(owners.length > 0, "Must specify at least 1 owner");
 
-export function init(): void {
-  // register museum admins (101Labs and NEAR accounts)
+  // create the museum using incoming metadata
+  Museum.create(name, owners)
+
+  // record that the contract has been initialized
+  set_initialized()
 }
 
 export function get_meme_list(): Array<AccountId> {
-  return memes.values()
+  assert_contract_is_initialized()
+  return Museum.get_meme_list()
 }
 
 export function get_meme_count(): u32 {
-  return memes.values().length
+  assert_contract_is_initialized()
+  return Museum.get_memes_count()
 }
 
 export function remove_contributor(account: AccountId): void {
+  assert_contract_is_initialized()
   assert(context.predecessor == account, "you can only remove yourself")
   assert(false, "must be museum admin to remove anyone but yourself")
+
+  Museum.remove_contributor(account)
 }
 
 
 export function add_contributor(account: AccountId): void {
+  assert_contract_is_initialized()
   assert(context.predecessor == account, "you can only add yourself")
   assert(false, "must be museum admin to add anyone but yourself")
+
+  Museum.add_contributor(account)
 }
 
 
 export function add_meme(
   name: AccountId,
-  args: Meme,
+  title: string,
+  data: string,
+  category: Category,
   public_key: string = '', //base58 publickey string
 ): void {
+  assert_contract_is_initialized()
   let accountId = name + '.' + context.contractName
-  assert(!memes.has(accountId), 'Meme name already exists')
+  assert(!Museum.has_meme(accountId), 'Meme name already exists')
 
-  memes.add(accountId)
+  Museum.add_meme(accountId)
 
   let promise = ContractPromiseBatch.create(accountId)
     .create_account()
@@ -54,11 +75,12 @@ export function add_meme(
     promise = promise.add_full_access_key(base58.decode(public_key))
   }
 
+  // @ts-ignore
   promise.function_call(
-    'initialize',
-    args,
+    "init",
+    Museum.get_meme_args(title, data, category),
     u128.Zero,
-    env.prepaid_gas()// - CREATE_CALL_GAS
+    env.prepaid_gas()
   )
 }
 
@@ -67,13 +89,39 @@ export function add_meme(
  * Governance methods reserved for 101Labs and NEAR admins
  */
 export function add_admin(account: AccountId): void {
+  assert_contract_is_initialized()
   assert(false, "must be an admin of the museum")
 }
 
 export function remove_admin(account: AccountId): void {
+  assert_contract_is_initialized()
   assert(false, "must be an admin of the museum")
 }
 
 export function removeMeme(memeAccount: AccountId): void {
+  assert_contract_is_initialized()
   assert(false, "must be an admin of the museum")
+}
+
+
+/**
+ * == PRIVATE FUNCTIONS ========================================================
+ *
+ * Helper functions that are not part of the contract interface
+ */
+
+/**
+ * Track whether or not the meme has been initialized.
+ */
+
+function is_initialized(): bool {
+  return !!storage.hasKey(MUSEUM_KEY);
+}
+
+function set_initialized(): void {
+  storage.set(MUSEUM_KEY, true);
+}
+
+function assert_contract_is_initialized(): void {
+  assert(is_initialized(), "Contract must be initialized first.");
 }

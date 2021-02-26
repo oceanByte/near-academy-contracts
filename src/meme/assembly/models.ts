@@ -3,16 +3,9 @@ import {
   context,
   storage,
   PersistentVector,
-} from 'near-sdk-as';
+} from "near-sdk-as";
 
-import { AccountId, Money, Timestamp } from '../../utils';
-
-export enum Category {
-  A = 0 as i8,
-  B = 1 as i8,
-  C = 2 as i8,
-  D = 4 as i8,
-}
+import { MEME_KEY, PAGE_SIZE, Category, AccountId, Money, Timestamp } from "../../utils";
 
 @nearBindgen
 export class Comment {
@@ -54,42 +47,34 @@ export class Meme {
 
   constructor(
     public title: String,
-    public data: String, // TODO: data is MEME_ID --> https://9gag.com/gag/MEME_ID
+    public data: String,
     public category: Category,
   ) { }
 
+
+  // ----------------------------------------------------------------------------
+  // Basic functions
+  // ----------------------------------------------------------------------------
+
   static create(title: string, data: string, category: Category): void {
-    this.set(new Meme(title, data, category))
+    // data has to have identifier from valid content provider
+    assert(is_valid_meme_data(data), "Data is not valid, must start with https://9gag.com URL")
+
+    // save the meme to storage
+    this.set(new Meme(title, extract_identifier(data), category))
   }
 
-  /**
-   * return the last `count` votes for the meme
-   * @param count
-   */
-  static recent_votes(count: i32): Vote[] {
-    return votes.get_last(count)
+  static get(): Meme {
+    return storage.getSome<Meme>(MEME_KEY)
   }
 
-  static recent_donations(count: i32): Donation[] {
-    return donations.get_last(count)
+  static set(meme: Meme): void {
+    storage.set(MEME_KEY, meme)
   }
 
-  static recent_comments(count: i32): Comment[] {
-    return comments.get_last(count)
-  }
-
-  static get_votes_count(): u32 {
-    return votes.length
-  }
-
-  static get_donations_count(): u32 {
-    return donations.length
-  }
-
-  static get_comments_count(): u32 {
-    return comments.length
-  }
-
+  // ----------------------------------------------------------------------------
+  // Voting
+  // ----------------------------------------------------------------------------
   static add_vote(voter: string, value: i8): void {
     // fetch meme from storage
     const meme = this.get()
@@ -101,6 +86,32 @@ export class Meme {
     votes.push(new Vote(value, voter))
   }
 
+  static get_votes_count(): u32 {
+    return votes.length
+  }
+
+  static recent_votes(count: i32 = PAGE_SIZE): Vote[] {
+    return votes.get_last(count)
+  }
+
+  // ----------------------------------------------------------------------------
+  // Comments
+  // ----------------------------------------------------------------------------
+  static add_comment(text: string): void {
+    comments.push(new Comment(text))
+  }
+
+  static get_comments_count(): u32 {
+    return comments.length
+  }
+
+  static recent_comments(count: i32 = PAGE_SIZE): Comment[] {
+    return comments.get_last(count)
+  }
+
+  // ----------------------------------------------------------------------------
+  // Donations
+  // ----------------------------------------------------------------------------
   static add_donation(): void {
     // fetch meme from storage
     const meme = this.get()
@@ -112,17 +123,26 @@ export class Meme {
     donations.push(new Donation())
   }
 
-  static add_comment(comment: Comment): void {
-    comments.push(comment)
+  static get_donations_count(): u32 {
+    return donations.length
   }
 
-  static get(): Meme {
-    return storage.getSome<Meme>("meme")
+  static recent_donations(count: i32 = PAGE_SIZE): Donation[] {
+    return donations.get_last(count)
   }
+}
 
-  static set(meme: Meme): void {
-    storage.set("meme", meme)
-  }
+/**
+ * Handle validation and extraction of meme data
+ */
+function is_valid_meme_data(data: string): bool {
+  return data.startsWith("https://9gag.com")
+}
+
+function extract_identifier(data: string): string {
+  const gag_id = data.split("/").pop()
+  assert(gag_id.length < 20, "9gag.com ID is too long")
+  return gag_id
 }
 
 /**
