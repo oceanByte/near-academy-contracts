@@ -140,11 +140,9 @@ export function remove_meme(meme: AccountId): void {
 }
 
 export function on_meme_removed(meme: AccountId): void {
+  // TODO: confirm that promise was successful
   logging.log("[ " + meme + " ] was removed")
-
-  if (ContractPromiseResult.length == 1) {
-    Museum.remove_meme(meme)
-  }
+  Museum.remove_meme(meme)
 }
 
 class MemeRemovedArgs {
