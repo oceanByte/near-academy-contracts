@@ -32,7 +32,7 @@ export function get_meme_list(): Array<AccountId> {
 
 export function get_meme_count(): u32 {
   assert_contract_is_initialized()
-  return Museum.get_memes_count()
+  return Museum.get_meme_count()
 }
 
 export function remove_contributor(account: AccountId): void {
@@ -51,7 +51,6 @@ export function add_contributor(account: AccountId): void {
 
   Museum.add_contributor(account)
 }
-
 
 export function add_meme(
   name: AccountId,
@@ -84,25 +83,29 @@ export function add_meme(
   )
 }
 
-
 /**
  * Governance methods reserved for 101Labs and NEAR admins
  */
 export function add_admin(account: AccountId): void {
   assert_contract_is_initialized()
-  assert(false, "must be an admin of the museum")
+  assert_signed_by_owner()
+
+  Museum.add_owner(account)
 }
 
 export function remove_admin(account: AccountId): void {
   assert_contract_is_initialized()
-  assert(false, "must be an admin of the museum")
+  assert_signed_by_owner()
+
+  Museum.remove_owner(account)
 }
 
-export function removeMeme(memeAccount: AccountId): void {
+export function remove_meme(meme: AccountId): void {
   assert_contract_is_initialized()
-  assert(false, "must be an admin of the museum")
-}
+  assert_signed_by_owner()
 
+  Museum.remove_meme(meme)
+}
 
 /**
  * == PRIVATE FUNCTIONS ========================================================
@@ -124,4 +127,16 @@ function set_initialized(): void {
 
 function assert_contract_is_initialized(): void {
   assert(is_initialized(), "Contract must be initialized first.");
+}
+
+
+/**
+ * Indicate whether contract caller is the creator
+ */
+function is_owner(): bool {
+  return Museum.has_owner(context.predecessor)
+}
+
+function assert_signed_by_owner(): void {
+  assert(is_owner(), "This method can only be called by a museum owner")
 }

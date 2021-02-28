@@ -1,19 +1,23 @@
 #![allow(dead_code, unused_variables, unused_imports, non_snake_case)]
+mod museum;
+pub use museum::*;
+
 mod meme;
 pub use meme::*;
 
 #[cfg(test)]
 mod test {
     use near_sdk::{json_types::Base58PublicKey, serde_json::json}; //, U128};
-                                                                   use near_sdk_sim::near_crypto::{InMemorySigner, KeyType};
-                                                                   // use std::convert::TryInto;
+    use near_sdk_sim::near_crypto::{InMemorySigner, KeyType};
+    // use std::convert::TryInto;
 
     use super::*;
     use near_sdk_sim::{call, deploy, init_simulator, to_yocto, ContractAccount, UserAccount};
 
     // Load in contract bytes
     near_sdk_sim::lazy_static! {
-      static ref MEME_WASM_BYTES: &'static [u8] = include_bytes!("../../build/debug/meme.wasm").as_ref();
+      static ref MUSEUM_WASM_BYTES: &'static [u8] = include_bytes!("../../build/release/museum.wasm").as_ref();
+      static ref MEME_WASM_BYTES: &'static [u8] = include_bytes!("../../build/release/meme.wasm").as_ref();
     }
 
     fn init() -> (UserAccount, ContractAccount<MemeContract>) {
@@ -56,7 +60,7 @@ mod test {
         let artist = "alice";
         let res = call!(
             master_account,
-            meme.initialize(&title, &artist, 0),
+            meme.init(&title, &artist, 0),
             deposit = to_yocto("3")
         );
         // println!("{:#?}\n{:#?}\n{:#?}\n", res, res.promise_results(), res.unwrap_json::<String>());

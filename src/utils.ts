@@ -16,8 +16,8 @@ export const XCC_GAS = 5000000000000;
 export const MIN_ACCOUNT_BALANCE = u128.mul(ONE_NEAR, u128.from(3));
 
 // common keys for singlton instances and initialization
-export const MEME_KEY = "meme"
-export const MUSEUM_KEY = "museum"
+export const MEME_KEY = "state"
+export const MUSEUM_KEY = "state"
 
 // size constraints
 export const PAGE_SIZE = 10

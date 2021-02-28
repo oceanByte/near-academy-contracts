@@ -3,6 +3,7 @@ import {
   context,
   storage,
   PersistentVector,
+  PersistentSet
 } from "near-sdk-as";
 
 import { MEME_KEY, PAGE_SIZE, Category, AccountId, Money, Timestamp } from "../../utils";
@@ -10,11 +11,10 @@ import { MEME_KEY, PAGE_SIZE, Category, AccountId, Money, Timestamp } from "../.
 @nearBindgen
 export class Comment {
   created_at: Timestamp = context.blockTimestamp;
-  author: AccountId = context.sender;
+  author: AccountId = context.predecessor;
 
   constructor(
-    public text: String,
-
+    public text: string
   ) { }
 }
 
@@ -24,7 +24,7 @@ export class Vote {
 
   constructor(
     public value: i8,
-    public voter: AccountId,
+    public voter: AccountId
   ) { }
 }
 
@@ -40,14 +40,14 @@ export class Donation {
 
 @nearBindgen
 export class Meme {
-  creator: AccountId = context.sender;
+  creator: AccountId = context.predecessor;
   created_at: Timestamp = context.blockTimestamp;
   vote_score: i32 = 0;
   total_donations: u128 = u128.Zero;
 
   constructor(
-    public title: String,
-    public data: String,
+    public title: string,
+    public data: string,
     public category: Category,
   ) { }
 
@@ -61,7 +61,8 @@ export class Meme {
     assert(is_valid_meme_data(data), "Data is not valid, must start with https://9gag.com URL")
 
     // save the meme to storage
-    this.set(new Meme(title, extract_identifier(data), category))
+    const meme = new Meme(title, data, category)
+    this.set(meme)
   }
 
   static get(): Meme {
@@ -76,12 +77,16 @@ export class Meme {
   // Voting
   // ----------------------------------------------------------------------------
   static add_vote(voter: string, value: i8): void {
+    // allow each account to vote only once
+    assert(!voters.has(voter), "Voter has already voted")
     // fetch meme from storage
     const meme = this.get()
     // calculate the new score for the meme
     meme.vote_score = meme.vote_score + value
     // save it back to storage
     this.set(meme)
+    // remember the voter has voted
+    voters.add(voter)
     // add the new Vote
     votes.push(new Vote(value, voter))
   }
@@ -139,6 +144,8 @@ function is_valid_meme_data(data: string): bool {
   return data.startsWith("https://9gag.com")
 }
 
+// DEPRECATED: decided against this
+// to simplify rendering especially if we add more valid prefixes
 function extract_identifier(data: string): string {
   const gag_id = data.split("/").pop()
   assert(gag_id.length < 20, "9gag.com ID is too long")
@@ -169,4 +176,5 @@ class Vector<T> extends PersistentVector<T> {
 
 const comments = new Vector<Comment>("c");
 const votes = new Vector<Vote>("v");
+const voters = new PersistentSet<AccountId>("vs");
 const donations = new Vector<Donation>("d");

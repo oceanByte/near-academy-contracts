@@ -1,114 +1,239 @@
-import { VMContext, u128, PersistentVector, Context, VM } from 'near-sdk-as';
-import * as contract from '../assembly';
-import * as models from '../assembly/models';
-import { toYocto, MIN_ACCOUNT_BALANCE, Category } from '../../utils';
+import { VM, VMContext, u128, PersistentVector, PersistentSet } from "near-sdk-as";
+import * as util from "../../utils";
+import * as model from "../assembly/models";
+import * as contract from "../assembly";
 
+/**
+ * == CONFIG VALUES ============================================================
+ */
+const TITLE = "usain refrain";
+const DATA = "https://9gag.com/gag/ayMDG8Y";
+const CATEGORY = util.Category.A;
+const MUSEUM_ACCOUNT_ID = "museum";
+const CREATOR_ACCOUNT_ID = "alice";
+const CONTRIBUTOR_ACCOUNT_ID = "bob";
+const ATTACHED_DEPOSIT = u128.from(10)
 /**
  * == HELPER FUNCTIONS =========================================================
  */
+const useMuseumAsPredecessor = (): void => {
+  VMContext.setPredecessor_account_id(MUSEUM_ACCOUNT_ID);
+};
+
+const useCreatorAsPredecessor = (): void => {
+  VMContext.setPredecessor_account_id(CREATOR_ACCOUNT_ID);
+};
+
+const useContributorAsPredecessor = (): void => {
+  VMContext.setPredecessor_account_id(CONTRIBUTOR_ACCOUNT_ID);
+};
+
 const attachMinBalance = (): void => {
-  VMContext.setAttached_deposit(MIN_ACCOUNT_BALANCE);
+  VMContext.setAttached_deposit(util.MIN_ACCOUNT_BALANCE);
 };
 
-const setPredecessor = (name: string = 'alice'): void => {
-  VMContext.setPredecessor_account_id(name);
+const doInitialize = (): void => {
+  attachMinBalance();
+  useMuseumAsPredecessor();
+  contract.init(TITLE, DATA, CATEGORY);
+}
+
+const comments = (): PersistentVector<model.Comment> => {
+  return new PersistentVector<model.Comment>("c");
 };
 
-const setSigner = (name: string = 'alice'): void => {
-  VMContext.setSigner_account_id(name);
+const votes = (): PersistentVector<model.Vote> => {
+  return new PersistentVector<model.Vote>("v");
+};
+
+const voters = (): PersistentSet<util.AccountId> => {
+  return new PersistentSet<util.AccountId>("vs");
+};
+
+const donations = (): PersistentVector<model.Donation> => {
+  return new PersistentVector<model.Donation>("d");
 };
 
 /**
  * == UNIT TESTS ==============================================================
  */
-const comments = new PersistentVector<models.Comment>("c");
 
-const title = "hello"
-const data = "ayMDG8Y" // https://9gag.com/gag/ayMDG8Y
-const category = Category.A
-let meme: models.Meme
+describe("meme initialization", () => {
+  beforeEach(useMuseumAsPredecessor)
 
-describe('meme', () => {
-
-  it('saves the meme', () => {
+  it("creates a new meme with proper metadata", () => {
     attachMinBalance()
-    setSigner()
-    contract.init(title, data, category)
-    // log(VM.logs())
 
+    contract.init(TITLE, DATA, CATEGORY);
     const m = contract.get_meme()
-    expect(m.title).toBe(title)
-    expect(m.data).toBe(data)
-    expect(m.creator).toBe('alice')
-    expect(m.category).toBe(category)
-    expect(models.Meme.get_donations_count()).toBe(0)
-    expect(models.Meme.get_votes_count()).toBe(0)
-  })
 
-  it('saves a comment to the meme', () => {
+    expect(m.title).toBe(TITLE)
+    expect(m.data).toBe(DATA)
+    expect(m.category).toBe(CATEGORY)
+    expect(m.total_donations).toBe(u128.Zero)
+    expect(m.vote_score).toBe(0)
+  });
+
+  it("prevents double initialization", () => {
     attachMinBalance()
-    contract.init(title, data, category)
 
-    contract.add_comment("yo")
-    expect(models.Meme.get_comments_count()).toBe(1)
-  })
-})
+    contract.init(TITLE, DATA, CATEGORY);
 
-describe('voting', () => {
-  beforeEach(() => {
-    setSigner()
-    setPredecessor()
+    expect(() => {
+      contract.init(TITLE, DATA, CATEGORY);
+    }).toThrow("Contract is already initialized")
+  });
+
+  it("requires title not to be blank", () => {
     attachMinBalance()
-    contract.init(title, data, category)
+
+    expect(() => {
+      contract.init("", DATA, CATEGORY);
+    }).toThrow("Meme title may not be blank")
+  });
+
+  it("requires a minimum balance", () => {
+    expect(() => {
+      contract.init(TITLE, DATA, CATEGORY);
+    }).toThrow("Minimum account balance must be attached to initialize this contract (3 NEAR)")
+  });
+
+});
+
+describe("meme voting", () => {
+  beforeEach(doInitialize)
+
+  it("allows individuals to vote", () => {
+    useContributorAsPredecessor()
+
+    expect(votes.length).toBe(0)
+    contract.vote(1)
+    expect(votes().length).toBe(1)
+  });
+
+  it("prevents vote automation for individuals", () => {
+    expect(() => {
+      contract.vote(1)
+    }).toThrow("Users must vote directly")
   })
 
-  it('saves a vote and calculates vote_score', () => {
-    contract.vote(-1)
-    const m = contract.get_meme()
-    expect(models.Meme.get_votes_count()).toBe(1)
-    expect(m.vote_score).toBe(-1)
+  it("prevents any user from voting more than once", () => {
+    useContributorAsPredecessor()
+    contract.vote(1)
+
+    expect(() => {
+      contract.vote(1)
+    }).toThrow("Voter has already voted")
+  });
+
+  describe("\nmeme captures votes", () => {
+    beforeEach(() => {
+      VMContext.setSigner_account_id(CREATOR_ACCOUNT_ID)
+      VMContext.setPredecessor_account_id(CREATOR_ACCOUNT_ID)
+      contract.vote(1)
+
+      VMContext.setSigner_account_id(CONTRIBUTOR_ACCOUNT_ID)
+      VMContext.setPredecessor_account_id(CONTRIBUTOR_ACCOUNT_ID)
+      contract.vote(1)
+    })
+
+    it("captures all votes", () => {
+      expect(votes().length).toBe(2)
+      expect(voters().values().length).toBe(2)
+    });
+
+    it("calculates a running vote score", () => {
+      expect(contract.get_vote_score()).toBe(2)
+    });
+
+    it("returns a list of recent votes", () => {
+      expect(contract.get_recent_votes().length).toBe(2)
+    })
   })
 
-  it('saves group votes and calculates vote_score', () => {
+  it("allows groups to vote", () => {
+    VMContext.setSigner_account_id(CREATOR_ACCOUNT_ID)
+    VMContext.setPredecessor_account_id(CREATOR_ACCOUNT_ID)
+
     contract.batch_vote(3)
-    const m = contract.get_meme()
-    expect(models.Meme.get_votes_count()).toBe(1)
-    expect(m.vote_score).toBe(3)
+
+    expect(votes().length).toBe(1)
+    expect(voters().values()[0].startsWith("batch-")).toBeTruthy()
+  });
+});
+
+
+describe("meme comments", () => {
+  beforeEach(doInitialize)
+
+  beforeEach(() => {
+    VMContext.setSigner_account_id(CONTRIBUTOR_ACCOUNT_ID)
+    VMContext.setPredecessor_account_id(CONTRIBUTOR_ACCOUNT_ID)
   })
 
-  it('returns 10 votes', () => {
-    const accounts = 'abcdefghijklmnopqrstuvwxyz'
-    const accountsList = accounts.split("")
-
-    for (let i = 0; i < accountsList.length; i++) {
-      setSigner(accountsList[i])
-      setPredecessor(accountsList[i])
-      contract.vote(Math.random() > 0.5 ? 1 : - 1)
-    }
-
-    expect(accountsList.length).not.toBe(10)
-    expect(models.Meme.get_votes_count()).toBe(accountsList.length)
-    expect(contract.get_recent_votes().length).toBe(10, "recent votes should be 10")
+  it("captures comments", () => {
+    contract.add_comment("i love this meme!")
+    expect(comments().length).toBe(1)
   })
 
+  it("rejects comments that are too long", () => {
+    expect(() => {
+      // AssemblyScript doesn't support closures as of time of writing
+      const TOO_LONG_TEXT = "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Tempore, doloremque. Quod maiores consectetur praesentium, aperiam repellendus facere velit dolorum vel corporis nisi pariatur asperiores animi quibusdam soluta deserunt nam? Repudiandae quidem quos expedita, vero, obcaecati ex, incidunt sequi porro corporis unde omnis ducimus tempora earum excepturi atque ea aliquid aliquam voluptates necessitatibus sit nostrum iure? Velit adipisci hic molestiae iure minima sint illum ex mollitia vitae consequuntur deserunt sit placeat, obcaecati quasi fugit odit aspernatur animi repellendus fugiat at dignissimos nihil!";
+
+      contract.add_comment(TOO_LONG_TEXT)
+    }).toThrow("Comment is too long, must be less than 500")
+  });
+
+  it("captures multiple comments", () => {
+    VMContext.setSigner_account_id(CREATOR_ACCOUNT_ID)
+    VMContext.setPredecessor_account_id(CREATOR_ACCOUNT_ID)
+    contract.add_comment("i love this")
+
+    VMContext.setSigner_account_id(CONTRIBUTOR_ACCOUNT_ID)
+    VMContext.setPredecessor_account_id(CONTRIBUTOR_ACCOUNT_ID)
+    contract.add_comment("i don't like it")
+
+    expect(contract.get_recent_comments().length).toBe(2)
+  });
 })
 
-describe('donating', () => {
-  beforeEach(() => {
-    setSigner()
-    setPredecessor()
-    attachMinBalance()
-    contract.init(title, data, category)
-  })
+describe("meme donations", () => {
+  beforeEach(doInitialize)
 
-  it('captures donation', () => {
-    const ATTACHED_DEPOSIT = u128.from(10)
+  it("captures donations  ", () => {
     VMContext.setAttached_deposit(ATTACHED_DEPOSIT)
+    VMContext.setSigner_account_id(CREATOR_ACCOUNT_ID)
+    VMContext.setPredecessor_account_id(CREATOR_ACCOUNT_ID)
 
     contract.donate()
+    expect(contract.get_meme().total_donations).toBe(ATTACHED_DEPOSIT)
+  })
 
-    const m = contract.get_meme()
-    expect(models.Meme.recent_donations(10).length).toBe(1)
-    expect(m.total_donations).toBe(ATTACHED_DEPOSIT)
+  describe("captures donations", () => {
+
+    beforeEach(() => {
+      VMContext.setAttached_deposit(ATTACHED_DEPOSIT)
+
+      VMContext.setSigner_account_id(CREATOR_ACCOUNT_ID)
+      VMContext.setPredecessor_account_id(CREATOR_ACCOUNT_ID)
+      contract.donate()
+
+      VMContext.setSigner_account_id(CONTRIBUTOR_ACCOUNT_ID)
+      VMContext.setPredecessor_account_id(CONTRIBUTOR_ACCOUNT_ID)
+      contract.donate()
+    })
+
+    it("captures all donations", () => {
+      expect(donations().length).toBe(2)
+    });
+
+    it("calculates a running donations total", () => {
+      expect(contract.get_donations_total()).toBe(u128.from(20))
+    });
+
+    it("returns a list of recent donations", () => {
+      expect(contract.get_recent_donations().length).toBe(2)
+    })
   })
 })

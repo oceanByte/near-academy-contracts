@@ -7,7 +7,7 @@ import {
 } from "near-sdk-as";
 
 import { MEME_KEY, XCC_GAS, MIN_ACCOUNT_BALANCE, MAX_COMMENT_LENGTH, AccountId, Category } from "../../utils";
-import { Comment, Vote, Meme } from "./models";
+import { Comment, Vote, Meme, Donation } from "./models";
 
 /**
  * == PUBLIC METHODS ==========================================================
@@ -38,8 +38,6 @@ export function init(title: string, data: string, category: Category): void {
   // create the meme using incoming metadata
   Meme.create(title, data, category)
 
-  // record that the contract has been initialized
-  set_initialized()
 }
 
 /**
@@ -61,8 +59,8 @@ export function get_meme(): Meme {
  */
 export function vote(value: i8): void {
   assert_contract_is_initialized()
-  assert(context.sender == context.predecessor, "users must vote directly")
-  assert(value == 1 || value == -1, "invalid vote, must be -1 or 1")
+  assert(context.sender == context.predecessor, "Users must vote directly")
+  assert(value == 1 || value == -1, "Invalid vote, must be -1 or 1")
 
   // register the vote
   batch_vote(value, false)
@@ -76,6 +74,10 @@ export function vote(value: i8): void {
  */
 export function batch_vote(value: i8, is_batch: bool = true): void {
   // register the vote
+  if (is_batch) {
+    assert(context.predecessor == context.contractName, "Batch votes may only be made by the Meme account")
+  }
+
   const voter = is_batch ? "batch-" + context.predecessor : context.predecessor
   Meme.add_vote(voter, value)
 }
@@ -107,6 +109,7 @@ export function get_vote_score(): i32 {
  */
 export function add_comment(text: string): void {
   assert_contract_is_initialized()
+  assert(context.sender == context.predecessor, "Users must comment directly")
   assert_reasonable_comment_length(text)
   Meme.add_comment(text)
 }
@@ -137,10 +140,19 @@ export function donate(): void {
 /**
  * Get a list of donations
  */
-export function get_donations(): u128 {
+export function get_donations_total(): u128 {
   assert_contract_is_initialized()
   return Meme.get().total_donations
 }
+
+/**
+ * Get a list o recent comments
+ */
+export function get_recent_donations(): Array<Donation> {
+  assert_contract_is_initialized()
+  return Meme.recent_donations()
+}
+
 
 /**
  * Transfer all donations to a specified account
@@ -192,11 +204,7 @@ function assert_signed_by_creator(): void {
  * Track whether or not the meme has been initialized.
  */
 function is_initialized(): bool {
-  return !!storage.hasKey(MEME_KEY);
-}
-
-function set_initialized(): void {
-  storage.set(MEME_KEY, true);
+  return storage.hasKey(MEME_KEY);
 }
 
 function assert_contract_is_initialized(): void {
