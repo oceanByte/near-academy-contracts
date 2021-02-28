@@ -6,7 +6,7 @@ export class Museum {
   created_at: Timestamp = context.blockTimestamp;
 
   constructor(
-    public name: String,
+    public name: string,
 
   ) { }
 
@@ -14,13 +14,15 @@ export class Museum {
   // Basic functions
   // ----------------------------------------------------------------------------
 
-  static create(name: string, owners: AccountId[]): void {
+  static create(name: string, new_owners: AccountId[]): void {
+    assert(name.length > 0, "Museum name may not be blank")
+
     // save the meme to storage
     this.set(new Museum(name))
 
     // capture owners
-    for (let i = 0; i < owners.length; i++) {
-      owners.push(owners[i])
+    for (let i = 0; i < new_owners.length; i++) {
+      owners.add(new_owners[i])
     }
   }
 
@@ -41,7 +43,7 @@ export class Museum {
   }
 
   static remove_meme(accountId: AccountId): void {
-    throw new Error('Method not implemented.');
+    memes.delete(accountId)
   }
 
   static get_meme_args(title: string, data: string, category: Category): string {
@@ -69,7 +71,7 @@ export class Museum {
   }
 
   static remove_contributor(account: string): void {
-    contributors
+    contributors.delete(account)
   }
 
   // ----------------------------------------------------------------------------

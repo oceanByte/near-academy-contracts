@@ -12,7 +12,9 @@ const CATEGORY = util.Category.A;
 const MUSEUM_ACCOUNT_ID = "museum";
 const CREATOR_ACCOUNT_ID = "alice";
 const CONTRIBUTOR_ACCOUNT_ID = "bob";
-const ATTACHED_DEPOSIT = u128.from(10)
+const ONE_NEAR = u128.from('1000000000000000000000000');
+const ATTACHED_DEPOSIT = u128.mul(ONE_NEAR, u128.from(10));
+
 /**
  * == HELPER FUNCTIONS =========================================================
  */
@@ -229,7 +231,8 @@ describe("meme donations", () => {
     });
 
     it("calculates a running donations total", () => {
-      expect(contract.get_donations_total()).toBe(u128.from(20))
+      const twice_attached_deposit = u128.mul(u128.from(2), ATTACHED_DEPOSIT)
+      expect(contract.get_donations_total()).toBe(twice_attached_deposit)
     });
 
     it("returns a list of recent donations", () => {

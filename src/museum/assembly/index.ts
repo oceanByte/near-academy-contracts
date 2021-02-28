@@ -1,18 +1,18 @@
-import { ContractPromiseBatch, context, base58, u128, env, storage } from 'near-sdk-as'
-import { MIN_ACCOUNT_BALANCE, AccountId, Category, MUSEUM_KEY } from '../../utils';
-import { Museum } from './models';
+import { ContractPromiseBatch, context, base58, u128, env, storage, ContractPromiseResult, logging } from "near-sdk-as"
+import { MIN_ACCOUNT_BALANCE, AccountId, Category, MUSEUM_KEY, XCC_GAS } from "../../utils";
+import { Museum } from "./models";
 
 // import meme contract bytecode as StaticArray
-const CODE = includeBytes('../../../build/release/meme.wasm')
+const CODE = includeBytes("../../../build/release/meme.wasm")
 
 export function init(name: string, owners: AccountId[]): void {
   // contract may only be initialized once
-  assert(!is_initialized(), 'Contract is already initialized.');
+  assert(!is_initialized(), "Contract is already initialized.");
 
   // storing meme metadata requires some storage staking (balance locked to offset cost of data storage)
   assert(
     u128.ge(context.attachedDeposit, MIN_ACCOUNT_BALANCE),
-    'MIN_ACCOUNT_BALANCE must be attached to initialize (3 NEAR)'
+    "Minimum account balance must be attached to initialize this contract (3 NEAR)"
   );
 
   // Must have least 1 owner account
@@ -20,12 +20,19 @@ export function init(name: string, owners: AccountId[]): void {
 
   // create the museum using incoming metadata
   Museum.create(name, owners)
-
-  // record that the contract has been initialized
-  set_initialized()
 }
 
-export function get_meme_list(): Array<AccountId> {
+export function get_museum(): Museum {
+  assert_contract_is_initialized()
+  return Museum.get()
+}
+
+export function get_owner_list(): AccountId[] {
+  assert_contract_is_initialized()
+  return Museum.get_owner_list()
+}
+
+export function get_meme_list(): AccountId[] {
   assert_contract_is_initialized()
   return Museum.get_meme_list()
 }
@@ -35,33 +42,34 @@ export function get_meme_count(): u32 {
   return Museum.get_meme_count()
 }
 
-export function remove_contributor(account: AccountId): void {
+/**
+ * Manage your status as a contributor
+ */
+export function add_myself_as_contributor(): void {
   assert_contract_is_initialized()
-  assert(context.predecessor == account, "you can only remove yourself")
-  assert(false, "must be museum admin to remove anyone but yourself")
-
-  Museum.remove_contributor(account)
+  Museum.add_contributor(context.predecessor)
 }
 
-
-export function add_contributor(account: AccountId): void {
+export function remove_myself_as_contributor(): void {
   assert_contract_is_initialized()
-  assert(context.predecessor == account, "you can only add yourself")
-  assert(false, "must be museum admin to add anyone but yourself")
-
-  Museum.add_contributor(account)
+  Museum.remove_contributor(context.predecessor)
 }
 
+/**
+ * Add your meme
+ */
 export function add_meme(
   name: AccountId,
   title: string,
   data: string,
   category: Category,
-  public_key: string = '', //base58 publickey string
+  public_key: string = "", //base58 publickey string
 ): void {
   assert_contract_is_initialized()
-  let accountId = name + '.' + context.contractName
-  assert(!Museum.has_meme(accountId), 'Meme name already exists')
+  assert(env.isValidAccountID(name), "Meme name must be valid NEAR account name")
+
+  let accountId = name + "." + context.contractName
+  assert(!Museum.has_meme(accountId), "Meme name already exists")
 
   Museum.add_meme(accountId)
 
@@ -86,14 +94,28 @@ export function add_meme(
 /**
  * Governance methods reserved for 101Labs and NEAR admins
  */
-export function add_admin(account: AccountId): void {
+export function add_contributor(account: AccountId): void {
+  assert_contract_is_initialized()
+  assert_signed_by_owner()
+
+  Museum.add_contributor(account)
+}
+
+export function remove_contributor(account: AccountId): void {
+  assert_contract_is_initialized()
+  assert_signed_by_owner()
+
+  Museum.remove_contributor(account)
+}
+
+export function add_owner(account: AccountId): void {
   assert_contract_is_initialized()
   assert_signed_by_owner()
 
   Museum.add_owner(account)
 }
 
-export function remove_admin(account: AccountId): void {
+export function remove_owner(account: AccountId): void {
   assert_contract_is_initialized()
   assert_signed_by_owner()
 
@@ -104,7 +126,31 @@ export function remove_meme(meme: AccountId): void {
   assert_contract_is_initialized()
   assert_signed_by_owner()
 
-  Museum.remove_meme(meme)
+  const args = new MemeRemovedArgs(meme)
+
+  ContractPromiseBatch.create(meme)
+    .delete_account(context.contractName)
+    .then(context.contractName)
+    .function_call(
+      "on_meme_removed",
+      args,
+      u128.Zero,
+      XCC_GAS
+    )
+}
+
+export function on_meme_removed(meme: AccountId): void {
+  logging.log("[ " + meme + " ] was removed")
+
+  if (ContractPromiseResult.length == 1) {
+    Museum.remove_meme(meme)
+  }
+}
+
+class MemeRemovedArgs {
+  constructor(
+    public meme: string
+  ) { }
 }
 
 /**
@@ -119,10 +165,6 @@ export function remove_meme(meme: AccountId): void {
 
 function is_initialized(): bool {
   return !!storage.hasKey(MUSEUM_KEY);
-}
-
-function set_initialized(): void {
-  storage.set(MUSEUM_KEY, true);
 }
 
 function assert_contract_is_initialized(): void {
