@@ -1,4 +1,4 @@
-import { ContractPromiseBatch, context, base58, u128, env, storage, ContractPromiseResult, logging } from "near-sdk-as"
+import { ContractPromiseBatch, context, base58, u128, env, storage, logging } from "near-sdk-as"
 import { MIN_ACCOUNT_BALANCE, AccountId, Category, MUSEUM_KEY, XCC_GAS } from "../../utils";
 import { Museum } from "./models";
 
@@ -20,6 +20,8 @@ export function init(name: string, owners: AccountId[]): void {
 
   // create the museum using incoming metadata
   Museum.create(name, owners)
+
+  logging.log("museum was created")
 }
 
 export function get_museum(): Museum {
@@ -89,6 +91,8 @@ export function add_meme(
     u128.Zero,
     env.prepaid_gas()
   )
+
+  logging.log("museum was created")
 }
 
 /**
@@ -99,6 +103,8 @@ export function add_contributor(account: AccountId): void {
   assert_signed_by_owner()
 
   Museum.add_contributor(account)
+
+  logging.log("contributor was added")
 }
 
 export function remove_contributor(account: AccountId): void {

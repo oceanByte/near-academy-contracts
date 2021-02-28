@@ -1,27 +1,59 @@
-// use near_sdk::json_types::U128;
-// use near_sdk::near_bindgen;
+use near_sdk::json_types::U128;
+use near_sdk::near_bindgen;
 
-// #[near_bindgen]
-// pub struct Proposal {}
+#[near_bindgen]
+pub struct Museum {}
 
-// #[near_bindgen]
-// impl Proposal {
-//     pub fn initialize() {}
+#[near_bindgen]
+impl Museum {
+    // ------------------------------------------------------------------------
+    // initialization
+    // ------------------------------------------------------------------------
 
-//     pub fn is_configured() {}
+    pub fn init(name: &str, owners: Vec<&str>) {}
 
-//     pub fn configure(title: &str, description: &str, goal: U128, min_deposit: U128) {}
+    // pub fn get_museum() -> Museum
+    pub fn get_museum() {}
 
-//     pub fn toString() {}
+    // ------------------------------------------------------------------------
+    // self-service methods
+    // ------------------------------------------------------------------------
 
-//     // pub fn add_supporter(coordinates: &str) {}
-//     pub fn add_supporter() {}
+    // pub fn get_owner_list() -> AccountId[]
+    pub fn get_owner_list() {}
 
-//     // pub fn list_supporters(): PersistentVector<Supporter>
+    // pub fn get_meme_list() -> AccountId[]
+    pub fn get_meme_list() {}
 
-//     pub fn get_factory() {}
+    // pub fn get_meme_count() -> u32
+    pub fn get_meme_count() {}
 
-//     // pub fn get_proposal()
-//     pub fn get_funding_total() {}
-//     // pub fn is_fully_funded()
-// }
+    pub fn add_myself_as_contributor() {}
+
+    pub fn remove_myself_as_contributor() {}
+
+    pub fn add_meme(
+        name: &str,
+        title: &str,
+        data: &str,
+        category: u8,
+        public_key: &str, //base58 publickey string
+    ) {
+    }
+
+    // ------------------------------------------------------------------------
+    // owner methods
+    // ------------------------------------------------------------------------
+
+    pub fn add_contributor(account: &str) {}
+
+    pub fn remove_contributor(account: &str) {}
+
+    pub fn add_owner(account: &str) {}
+
+    pub fn remove_owner(account: &str) {}
+
+    pub fn remove_meme(meme: &str) {}
+
+    pub fn on_meme_removed(meme: &str) {}
+}

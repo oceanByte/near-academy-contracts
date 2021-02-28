@@ -20,7 +20,10 @@ mod test {
       static ref MEME_WASM_BYTES: &'static [u8] = include_bytes!("../../build/release/meme.wasm").as_ref();
     }
 
-    fn init() -> (UserAccount, ContractAccount<MemeContract>) {
+    // ------------------------------------------------------------------------
+    // setup meme contract
+    // ------------------------------------------------------------------------
+    fn initMeme() -> (UserAccount, ContractAccount<MemeContract>) {
         let master_account = init_simulator(None);
         // uses default values for deposit and gas
         let meme_contract = deploy!(
@@ -45,86 +48,110 @@ mod test {
         (master_account, meme_contract)
     }
 
-    #[test]
-    fn test_initialize() {
-        let (master_account, meme) = init();
-
-        // let factory_account_id = "meme".to_string();
-        // let factory2 =
-        // InMemorySigner::from_seed(&factory_account_id, KeyType::ED25519, &factory_account_id);
-
-        // let factory = meme.user_account.switch_signer(factory2.into());
-        // a factory account will generate this meme.  we can pretend this happens here
-
-        let title = "holiday special";
-        let artist = "alice";
-        let res = call!(
-            master_account,
-            meme.init(&title, &artist, 0),
-            deposit = to_yocto("3")
+    // ------------------------------------------------------------------------
+    // setup museum contract
+    // ------------------------------------------------------------------------
+    fn initMuseum() -> (UserAccount, ContractAccount<MuseumContract>) {
+        let master_account = init_simulator(None);
+        // uses default values for deposit and gas
+        let museum_contract = deploy!(
+            // Contract Proxy
+            contract: MuseumContract,
+            // Contract account id
+            contract_id: "museum",
+            // Bytes of contract
+            bytes: &MUSEUM_WASM_BYTES,
+            // User deploying the contract,
+            signer_account: master_account
         );
-        // println!("{:#?}\n{:#?}\n{:#?}\n", res, res.promise_results(), res.unwrap_json::<String>());
-        println!("{:#?}\n", res);
-        // res.assert_success()
+
+        (master_account, museum_contract)
     }
 
+    // ------------------------------------------------------------------------
+    // test initialize meme
+    // ------------------------------------------------------------------------
     // #[test]
-    // fn test_factory() {
-    //     let (master_account, proposal) = init();
+    // fn test_initialize() {
+    //     let (master_account, meme) = initMeme();
 
-    //     call!(
+    //     let title = "usain refrain";
+    //     let data = "https://9gag.com/gag/ayMDG8Y";
+    //     let category = 0; // Category.A
+
+    //     let res = call!(
     //         master_account,
-    //         proposal.initialize(),
+    //         meme.init(&title, &data, category),
     //         deposit = to_yocto("3")
     //     );
 
-    //     let res = call!(master_account, proposal.get_factory());
-    //     // println!("{:#?}\n", res.unwrap_json_value());
-    //     assert!(res.unwrap_json_value().eq("root"));
+    //     println!("{:#?}\n", res);
+    //     res.assert_success()
     // }
 
-    // #[test]
-    // fn test_add_supporter() {
-    //     let (master_account, proposal) = init();
+    // ------------------------------------------------------------------------
+    // test add meme to museum
+    // ------------------------------------------------------------------------
+    #[test]
+    fn test_add_meme() {
+        let (master_account, museum) = initMuseum();
 
-    //     // master_account.account().
-    //     // let account = runtime.view_account(&"root").unwrap();
-    //     // println!("{:#?}\n", account);
+        // an owner will be able to manage the museum
+        let owner_account = "alice".to_string();
+        let owner = InMemorySigner::from_seed(&owner_account, KeyType::ED25519, &owner_account);
 
-    //     call!(
-    //         master_account,
-    //         proposal.initialize(),
-    //         deposit = to_yocto("3")
-    //     );
+        // a contributor can add their own memes
+        let contributor_account = "bob".to_string();
+        let contributor =
+            InMemorySigner::from_seed(&contributor_account, KeyType::ED25519, &contributor_account);
 
-    //     call!(
-    //         master_account,
-    //         proposal.configure(
-    //             "some proposal",
-    //             "really tho",
-    //             to_yocto("10").into(),
-    //             to_yocto("3").into()
-    //         )
-    //     );
+        let name = "meme museum";
 
-    //     call!(
-    //         master_account,
-    //         proposal.add_supporter(),
-    //         deposit = to_yocto("5")
-    //     );
+        // ----------------------------
+        // initialize museum
+        // ----------------------------
 
-    //     let added = call!(
-    //         master_account,
-    //         proposal.add_supporter(),
-    //         deposit = to_yocto("6")
-    //     );
+        let res = call!(
+            master_account,
+            museum.init(&name, vec![&owner_account, &master_account.account_id()]),
+            deposit = to_yocto("3")
+        );
 
-    //     println!("{:#?}\n", added);
+        println!("{:#?}\n", res);
+        res.assert_success(); // museum has been initialized
 
-    //     let total = call!(master_account, proposal.get_funding_total());
-    //     println!("{:#?}\n", total);
+        // ----------------------------
+        // add contributor to museum
+        // ----------------------------
+        // let owner_as_signer = museum.user_account.switch_signer(owner.into());
 
-    //     // println!("{:#?}\n", res.unwrap_json_value());
-    //     // assert!(res.unwrap_json_value().eq("root"));
-    // }
+        let res = call!(
+            master_account,
+            museum.add_contributor(&contributor.account_id)
+        );
+
+        println!("{:#?}\n", res);
+        // res.assert_success(); // contributor has been added
+
+        // ----------------------------
+        // switch signer to contributor
+        // ----------------------------
+        let name = "usain";
+        let title = "usain refrain";
+        let data = "https://9gag.com/gag/ayMDG8Y";
+        let category = 0; // Category.A
+        let public_key = &contributor.public_key.to_string(); //base58 public key
+
+        let contributor_as_signer = museum.user_account.switch_signer(contributor.into());
+
+        let res = call!(
+            master_account,
+            museum.add_meme(&name, &title, &data, category, public_key),
+            deposit = to_yocto("3")
+        );
+
+        println!("{:#?}\n", res);
+        // res.assert_success(); // meme has been added
+        // println!("{:#?}\n{:#?}\n", res, res.promise_results(),);
+    }
 }

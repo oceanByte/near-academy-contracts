@@ -5,10 +5,18 @@ pub struct Meme {}
 
 #[near_bindgen]
 impl Meme {
+    // ------------------------------------------------------------------------
+    // initialization
+    // ------------------------------------------------------------------------
+
     pub fn init(title: &str, data: &str, category: u8) {}
 
     // pub fn get_meme() -> Meme {}
     pub fn get_meme() {}
+
+    // ------------------------------------------------------------------------
+    // voting
+    // ------------------------------------------------------------------------
 
     pub fn vote(value: i8) {}
 
@@ -20,15 +28,26 @@ impl Meme {
     // pub fn get_vote_score() -> i32 {}
     pub fn get_vote_score() {}
 
+    // ------------------------------------------------------------------------
+    // comments
+    // ------------------------------------------------------------------------
+
     pub fn add_comment(text: &str) {}
 
     // pub fn get_recent_comments() -> Array<Comment> {}
     pub fn get_recent_comments() {}
 
+    // ------------------------------------------------------------------------
+    // donations
+    // ------------------------------------------------------------------------
+
     pub fn donate() {}
 
-    // pub fn get_donations() -> U128 {}
-    pub fn get_donations() {}
+    // pub fn get_donations_total() -> U128 {}
+    pub fn get_donations_total() {}
+
+    // pub fn get_recent_donations(): Array<Donation> {
+    pub fn get_recent_donations() {}
 
     pub fn release_donations(account: &str) {}
 
