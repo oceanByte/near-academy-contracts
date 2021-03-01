@@ -19,7 +19,6 @@ This will happen anytime you try using `near view ...` when you should be using 
 near dev-deploy ./build/release/meme.wasm
 ```
 
-
 ## initialization
 
 `init(title: string, data: string, category: Category): void`

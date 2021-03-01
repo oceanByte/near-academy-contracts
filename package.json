@@ -1,7 +1,7 @@
 {
-  "name": "nearly-neighbors",
+  "name": "near-academy-contracts",
   "version": "0.0.1",
-  "description": "A family of NEAR contracts to enable crowd-sourced civic development.",
+  "description": "Contracts for the Meme Museum on NEAR Academy",
   "scripts": {
     "dev": "watch -d -n 1 'clear && yarn test:unit'",
     "asp": "asp --verbose --nologo",
