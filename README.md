@@ -4,7 +4,7 @@ This repository includes contracts for NEAR Academy
 
 ## Usage
 
-## Getting started
+### Getting started
 
 1. clone this repo to a local folder
 2. run `yarn`
