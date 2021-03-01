@@ -24,7 +24,7 @@ near dev-deploy ./build/release/museum.wasm
 `init(name: string, owners: AccountId[]): void`
 
 ```sh
-
+near call dev-1614636496022-6736851 init '{"name":"The Meme Museum", "owners": ["sherif.testnet"]}' --account_id dev-1614636496022-6736851 --amount 3
 ```
 
 ## view methods
@@ -32,41 +32,41 @@ near dev-deploy ./build/release/museum.wasm
 `get_museum(): Museum`
 
 ```sh
-
+near view dev-1614636496022-6736851 get_museum
 ```
 
 ```js
-
+{ created_at: '1614636541756865886', name: 'The Meme Museum' }
 ```
 
 `get_owner_list(): AccountId[]`
 
 ```sh
-
+near view dev-1614636496022-6736851 get_owner_list
 ```
 
 ```js
-
+[ 'sherif.testnet', [length]: 1 ]
 ```
 
 `get_meme_list(): AccountId[]`
 
 ```sh
-
+near view dev-1614636496022-6736851 get_meme_list
 ```
 
 ```js
-
+[ 'usain', [length]: 1 ]
 ```
 
 `get_meme_count(): u32`
 
 ```sh
-
+near view dev-1614636496022-6736851 get_meme_count
 ```
 
 ```js
-
+1
 ```
 
 ## change methods
@@ -76,31 +76,26 @@ near dev-deploy ./build/release/museum.wasm
 `add_myself_as_contributor(): void`
 
 ```sh
-
+near call dev-1614636496022-6736851 add_myself_as_contributor --account_id sherif.testnet
 ```
 
 
 `remove_myself_as_contributor(): void`
 
 ```sh
-
+near call dev-1614636496022-6736851 remove_myself_as_contributor --account_id sherif.testnet
 ```
-
-
 
 `add_meme(name: AccountId, title: string, data: string, category: Category): void`
 
 ```sh
-
+near call dev-1614636496022-6736851 add_meme '{"name":"usain", "title": "usain refrain","data":"https://9gag.com/gag/ayMDG8Y", "category": 0 }' --account_id sherif.testnet --amount 3 --gas "300000000000000"
 ```
 
 
 `on_meme_created(meme: AccountId): void`
 
-```sh
-
-```
-
+This method is called automatically by `add_meme()` as a confirmation of meme account creation.
 
 
 ### owner methods
@@ -109,40 +104,38 @@ near dev-deploy ./build/release/museum.wasm
 `add_contributor(account: AccountId): void`
 
 ```sh
-
+near call dev-1614636496022-6736851 add_contributor '{"account":"sherif.testnet"}' --account_id sherif.testnet
 ```
 
 
 `remove_contributor(account: AccountId): void`
 
 ```sh
-
+near call dev-1614636496022-6736851 remove_contributor '{"account":"sherif.testnet"}' --account_id sherif.testnet
 ```
 
 
 `add_owner(account: AccountId): void`
 
 ```sh
-
+near call dev-1614636496022-6736851 add_owner '{"account":"abcabc.testnet"}' --account_id sherif.testnet
 ```
 
 
 `remove_owner(account: AccountId): void`
 
 ```sh
-
+near call dev-1614636496022-6736851 remove_owner '{"account":"abcabc.testnet"}' --account_id sherif.testnet
 ```
 
 
 `remove_meme(meme: AccountId): void`
 
 ```sh
-
+near call dev-1614636496022-6736851 remove_meme '{"meme":"usain"}' --account_id sherif.testnet
 ```
 
 
 `on_meme_removed(meme: AccountId): void`
 
-```sh
-
-```
+This method is called automatically by `remove_meme()` as a confirmation of meme account deletion.

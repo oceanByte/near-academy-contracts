@@ -1,5 +1,4 @@
-import { ContractPromiseBatch, context, base58, u128, env, storage, logging, ContractPromiseResult, ContractPromise } from "near-sdk-as"
-import { Meme } from "../../meme/assembly/models";
+import { ContractPromiseBatch, context, base58, u128, env, storage, logging, ContractPromise } from "near-sdk-as"
 import { MIN_ACCOUNT_BALANCE, AccountId, Category, MUSEUM_KEY, XCC_GAS } from "../../utils";
 import { Museum, MemeInitArgs, MemeNameAsArg } from "./models";
 
@@ -62,7 +61,7 @@ export function remove_myself_as_contributor(): void {
  * Add your meme
  */
 export function add_meme(
-  name: AccountId,
+  meme: AccountId,
   title: string,
   data: string,
   category: Category
@@ -76,9 +75,9 @@ export function add_meme(
     "Minimum account balance must be attached to initialize a meme (3 NEAR)"
   );
 
-  assert(env.isValidAccountID(name), "Meme name must be valid NEAR account name")
+  const accountId = full_account_for(meme)
 
-  let accountId = name + "." + context.contractName
+  assert(env.isValidAccountID(accountId), "Meme name must be valid NEAR account name")
   assert(!Museum.has_meme(accountId), "Meme name already exists")
 
   logging.log("attempting to create meme")
@@ -97,7 +96,7 @@ export function add_meme(
 
   promise.then(context.contractName).function_call(
     "on_meme_created",
-    new MemeNameAsArg(name),
+    new MemeNameAsArg(meme),
     u128.Zero,
     XCC_GAS
   )
@@ -108,10 +107,25 @@ export function on_meme_created(meme: AccountId): void {
   let memeCreated = results[0];
 
   // Verifying the remote contract call succeeded.
-  if (memeCreated.status) {
-    const memeAccountId = meme + "." + context.contractName
-    logging.log("Meme [ " + memeAccountId + " ] successfully created")
-    Museum.add_meme(meme)
+  // https://nomicon.io/RuntimeSpec/Components/BindingsSpec/PromisesAPI.html?highlight=promise#returns-3
+  switch (memeCreated.status) {
+    case 0:
+      // promise result is not complete
+      logging.log("Meme creation for [ " + full_account_for(meme) + " ] is pending")
+      break;
+    case 1:
+      // promise result is complete and successful
+      logging.log("Meme creation for [ " + full_account_for(meme) + " ] succeeded")
+      Museum.add_meme(meme)
+      break;
+    case 2:
+      // promise result is complete and failed
+      logging.log("Meme creation for [ " + full_account_for(meme) + " ] failed")
+      break;
+
+    default:
+      logging.log("Unexpected value for promise result [" + memeCreated.status.toString() + "]");
+      break;
   }
 }
 
@@ -152,7 +166,7 @@ export function remove_meme(meme: AccountId): void {
   assert_contract_is_initialized()
   assert_signed_by_owner()
 
-  ContractPromiseBatch.create(meme)
+  ContractPromiseBatch.create(full_account_for(meme))
     .delete_account(context.contractName)
     .then(context.contractName)
     .function_call(
@@ -165,7 +179,7 @@ export function remove_meme(meme: AccountId): void {
 
 export function on_meme_removed(meme: AccountId): void {
   // TODO: confirm that promise was successful
-  logging.log("[ " + meme + " ] was removed")
+  logging.log("[ " + full_account_for(meme) + " ] was removed")
   Museum.remove_meme(meme)
 }
 
@@ -181,7 +195,7 @@ export function on_meme_removed(meme: AccountId): void {
  */
 
 function is_initialized(): bool {
-  return !!storage.hasKey(MUSEUM_KEY);
+  return storage.hasKey(MUSEUM_KEY);
 }
 
 function assert_contract_is_initialized(): void {
@@ -206,6 +220,10 @@ function assert_signed_by_owner(): void {
 
 function assert_signed_by_contributor_or_owner(): void {
   assert(is_contributor() || is_owner(), "This method can only be called by a museum contributor or owner")
+}
+
+function full_account_for(meme: string): string {
+  return meme + "." + context.contractName
 }
 
 function remaining_gas(): u64 {

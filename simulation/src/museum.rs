@@ -32,7 +32,7 @@ impl Museum {
 
     pub fn remove_myself_as_contributor() {}
 
-    pub fn add_meme(name: &str, title: &str, data: &str, category: u8) {}
+    pub fn add_meme(meme: &str, title: &str, data: &str, category: u8) {}
 
     // ------------------------------------------------------------------------
     // owner methods

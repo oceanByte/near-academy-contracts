@@ -128,7 +128,7 @@ describe("meme voting", () => {
     }).toThrow("Voter has already voted")
   });
 
-  describe("\nmeme captures votes", () => {
+  describe("meme captures votes", () => {
     beforeEach(() => {
       VMContext.setSigner_account_id(CREATOR_ACCOUNT_ID)
       VMContext.setPredecessor_account_id(CREATOR_ACCOUNT_ID)
@@ -239,4 +239,7 @@ describe("meme donations", () => {
       expect(contract.get_recent_donations().length).toBe(2)
     })
   })
+
+  // we have to use simulation tests for cross-contract calls
+  xit("releases donations", () => { })
 })
