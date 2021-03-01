@@ -113,7 +113,7 @@ mod test {
 
         let res = call!(
             master_account,
-            museum.init(&name, vec![&owner_account, &master_account.account_id()]),
+            museum.init(&name, vec![&owner_account]),
             deposit = to_yocto("3")
         );
 
@@ -126,7 +126,7 @@ mod test {
         // let owner_as_signer = museum.user_account.switch_signer(owner.into());
 
         let res = call!(
-            master_account,
+            owner_as_signer,
             museum.add_contributor(&contributor.account_id)
         );
 
@@ -145,7 +145,7 @@ mod test {
         let contributor_as_signer = museum.user_account.switch_signer(contributor.into());
 
         let res = call!(
-            master_account,
+            contributor_as_signer,
             museum.add_meme(&name, &title, &data, category, public_key),
             deposit = to_yocto("3")
         );

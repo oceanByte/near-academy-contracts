@@ -58,7 +58,7 @@ export class Meme {
 
   static create(title: string, data: string, category: Category): void {
     // data has to have identifier from valid content provider
-    assert(is_valid_meme_data(data), "Data is not valid, must start with https://9gag.com URL")
+    assert(is_valid_meme_data(data), "Data is not valid, must start with valid 9gag.com URL")
 
     // save the meme to storage
     const meme = new Meme(title, data, category)
