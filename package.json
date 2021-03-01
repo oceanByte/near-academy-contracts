@@ -8,8 +8,8 @@
     "test:unit": "yarn asp -f unit.spec",
     "build": "asb --target debug",
     "build:release": "asb",
-    "test": "yarn test:unit && yarn test:simulate",
-    "test:simulate": "yarn build:release && cargo test -- --nocapture",
+    "test": "yarn build:release && yarn test:unit && yarn test:simulate",
+    "test:simulate": "cargo test -- --nocapture",
     "clean": "rm -rf ./build",
     "test:debug": "node --inspect-brk ./node_modules/.bin/asp"
   },

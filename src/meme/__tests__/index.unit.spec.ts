@@ -1,4 +1,4 @@
-import { VM, VMContext, u128, PersistentVector, PersistentSet } from "near-sdk-as";
+import { VMContext, u128, PersistentVector, PersistentSet } from "near-sdk-as";
 import * as util from "../../utils";
 import * as model from "../assembly/models";
 import * as contract from "../assembly";
@@ -20,10 +20,6 @@ const ATTACHED_DEPOSIT = u128.mul(ONE_NEAR, u128.from(10));
  */
 const useMuseumAsPredecessor = (): void => {
   VMContext.setPredecessor_account_id(MUSEUM_ACCOUNT_ID);
-};
-
-const useCreatorAsPredecessor = (): void => {
-  VMContext.setPredecessor_account_id(CREATOR_ACCOUNT_ID);
 };
 
 const useContributorAsPredecessor = (): void => {

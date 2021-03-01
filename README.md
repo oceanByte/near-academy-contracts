@@ -4,11 +4,18 @@ This repository includes contracts for NEAR Academy
 
 ## Usage
 
+## Getting started
+
+1. clone this repo to a local folder
+2. run `yarn`
+3. run `yarn test`
+
 ### Top-level `yarn` commands
 
 - run `yarn test` to run all tests
-  - run `yarn test:unit` to run only unit tests
-  - run `yarn test:simulate` to run only simulation tests
+  - (!) be sure to run `yarn build:release` at least once before:
+    - run `yarn test:unit` to run only unit tests
+    - run `yarn test:simulate` to run only simulation tests
 - run `yarn build` to quickly verify build status
 - run `yarn clean` to clean up build folder
 
