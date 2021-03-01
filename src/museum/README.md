@@ -1,5 +1,4 @@
-skeleton for building out Meme Museum
-
+# Museum Contract
 
 **NOTE**
 
