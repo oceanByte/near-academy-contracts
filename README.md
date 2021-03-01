@@ -34,20 +34,20 @@ Please note that boilerplate project configuration files have been ommitted from
 
 ```txt
 src
-├── meme                          <-- self-contained Meme contract
+├── meme                          <-- Meme contract
 │   ├── README.md
-│   ├── __tests__                 <-- unit tests
+│   ├── __tests__
 │   │   ├── README.md
 │   │   └── index.unit.spec.ts
-│   └── assembly                  <-- contract code
+│   └── assembly
 │       ├── index.ts
 │       └── models.ts
-├── museum                        <-- self-contained Museum contract
+├── museum                        <-- Museum contract
 │   ├── README.md
-│   ├── __tests__                 <-- unit tests
+│   ├── __tests__
 │   │   ├── README.md
 │   │   └── index.unit.spec.ts
-│   └── assembly                  <-- contract code
+│   └── assembly
 │       ├── index.ts
 │       └── models.ts
 └── utils.ts                      <-- shared contract code
