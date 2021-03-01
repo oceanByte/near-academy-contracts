@@ -1,6 +1,7 @@
-import { ContractPromiseBatch, context, base58, u128, env, storage, logging } from "near-sdk-as"
+import { ContractPromiseBatch, context, base58, u128, env, storage, logging, ContractPromiseResult, ContractPromise } from "near-sdk-as"
+import { Meme } from "../../meme/assembly/models";
 import { MIN_ACCOUNT_BALANCE, AccountId, Category, MUSEUM_KEY, XCC_GAS } from "../../utils";
-import { Museum } from "./models";
+import { Museum, MemeInitArgs, MemeNameAsArg } from "./models";
 
 // import meme contract bytecode as StaticArray
 const CODE = includeBytes("../../../build/release/meme.wasm")
@@ -64,38 +65,57 @@ export function add_meme(
   name: AccountId,
   title: string,
   data: string,
-  category: Category,
-  public_key: string = "", //base58 publickey string
+  category: Category
 ): void {
   assert_contract_is_initialized()
+  assert_signed_by_contributor_or_owner()
+
+  // storing meme metadata requires some storage staking (balance locked to offset cost of data storage)
+  assert(
+    u128.ge(context.attachedDeposit, MIN_ACCOUNT_BALANCE),
+    "Minimum account balance must be attached to initialize a meme (3 NEAR)"
+  );
+
   assert(env.isValidAccountID(name), "Meme name must be valid NEAR account name")
 
   let accountId = name + "." + context.contractName
   assert(!Museum.has_meme(accountId), "Meme name already exists")
 
-  Museum.add_meme(accountId)
+  logging.log("attempting to create meme")
 
   let promise = ContractPromiseBatch.create(accountId)
     .create_account()
     .deploy_contract(Uint8Array.wrap(changetype<ArrayBuffer>(CODE)))
-    .transfer(context.attachedDeposit)
+    .add_full_access_key(base58.decode(context.senderPublicKey))
 
-  if (public_key) {
-    promise = promise.add_full_access_key(base58.decode(public_key))
-  }
-
-  // @ts-ignore
   promise.function_call(
     "init",
-    Museum.get_meme_args(title, data, category),
-    u128.Zero,
-    env.prepaid_gas()
+    new MemeInitArgs(title, data, category),
+    context.attachedDeposit,
+    XCC_GAS
   )
 
-  logging.log("museum was created")
+  promise.then(context.contractName).function_call(
+    "on_meme_created",
+    new MemeNameAsArg(name),
+    u128.Zero,
+    XCC_GAS
+  )
 }
 
-/**
+export function on_meme_created(meme: AccountId): void {
+  let results = ContractPromise.getResults();
+  let memeCreated = results[0];
+
+  // Verifying the remote contract call succeeded.
+  if (memeCreated.status) {
+    const memeAccountId = meme + "." + context.contractName
+    logging.log("Meme [ " + memeAccountId + " ] successfully created")
+    Museum.add_meme(meme)
+  }
+}
+
+/*
  * Governance methods reserved for 101Labs and NEAR admins
  */
 export function add_contributor(account: AccountId): void {
@@ -132,14 +152,12 @@ export function remove_meme(meme: AccountId): void {
   assert_contract_is_initialized()
   assert_signed_by_owner()
 
-  const args = new MemeRemovedArgs(meme)
-
   ContractPromiseBatch.create(meme)
     .delete_account(context.contractName)
     .then(context.contractName)
     .function_call(
       "on_meme_removed",
-      args,
+      new MemeNameAsArg(meme),
       u128.Zero,
       XCC_GAS
     )
@@ -151,11 +169,6 @@ export function on_meme_removed(meme: AccountId): void {
   Museum.remove_meme(meme)
 }
 
-class MemeRemovedArgs {
-  constructor(
-    public meme: string
-  ) { }
-}
 
 /**
  * == PRIVATE FUNCTIONS ========================================================
@@ -183,6 +196,18 @@ function is_owner(): bool {
   return Museum.has_owner(context.predecessor)
 }
 
+function is_contributor(): bool {
+  return Museum.is_contributor(context.predecessor)
+}
+
 function assert_signed_by_owner(): void {
   assert(is_owner(), "This method can only be called by a museum owner")
+}
+
+function assert_signed_by_contributor_or_owner(): void {
+  assert(is_contributor() || is_owner(), "This method can only be called by a museum contributor or owner")
+}
+
+function remaining_gas(): u64 {
+  return env.prepaid_gas() - (2 * env.used_gas())
 }

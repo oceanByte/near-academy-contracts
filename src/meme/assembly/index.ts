@@ -37,7 +37,6 @@ export function init(title: string, data: string, category: Category): void {
 
   // create the meme using incoming metadata
   Meme.create(title, data, category)
-
 }
 
 /**

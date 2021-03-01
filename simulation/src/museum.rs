@@ -32,14 +32,7 @@ impl Museum {
 
     pub fn remove_myself_as_contributor() {}
 
-    pub fn add_meme(
-        name: &str,
-        title: &str,
-        data: &str,
-        category: u8,
-        public_key: &str, //base58 publickey string
-    ) {
-    }
+    pub fn add_meme(name: &str, title: &str, data: &str, category: u8) {}
 
     // ------------------------------------------------------------------------
     // owner methods
@@ -56,4 +49,6 @@ impl Museum {
     pub fn remove_meme(meme: &str) {}
 
     pub fn on_meme_removed(meme: &str) {}
+
+    pub fn museum_to_meme_proxy(meme: &str, view_fn: &str) {}
 }

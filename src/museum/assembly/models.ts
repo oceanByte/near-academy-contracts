@@ -1,4 +1,5 @@
 import { context, PersistentSet, storage } from "near-sdk-as"
+import { Meme } from "../../meme/assembly/models";
 import { MUSEUM_KEY, AccountId, Timestamp, Category } from "../../utils";
 
 @nearBindgen
@@ -46,10 +47,6 @@ export class Museum {
     memes.delete(accountId)
   }
 
-  static get_meme_args(title: string, data: string, category: Category): string {
-    return "{'title': '" + title + "', 'data': " + data + "', 'category': '" + category.toString() + "'}";
-  }
-
   static has_meme(accountId: AccountId): bool {
     return memes.has(accountId)
   }
@@ -66,19 +63,23 @@ export class Museum {
   // Contributors
   // ----------------------------------------------------------------------------
 
-  static add_contributor(account: string): void {
+  static add_contributor(account: AccountId): void {
     contributors.add(account)
   }
 
-  static remove_contributor(account: string): void {
+  static remove_contributor(account: AccountId): void {
     contributors.delete(account)
+  }
+
+  static is_contributor(account: AccountId): bool {
+    return contributors.has(account)
   }
 
   // ----------------------------------------------------------------------------
   // Owners
   // ----------------------------------------------------------------------------
 
-  static add_owner(account: string): void {
+  static add_owner(account: AccountId): void {
     owners.add(account)
   }
 
@@ -98,3 +99,19 @@ export class Museum {
 const memes = new PersistentSet<AccountId>("m")
 const contributors = new PersistentSet<AccountId>("c")
 const owners = new PersistentSet<AccountId>("o")
+
+@nearBindgen
+export class MemeInitArgs {
+  constructor(
+    public title: string,
+    public data: string,
+    public category: Category
+  ) { }
+}
+
+@nearBindgen
+export class MemeNameAsArg {
+  constructor(
+    public meme: string
+  ) { }
+}

@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use near_sdk::near_bindgen;
 
 #[near_bindgen]
